@@ -1,0 +1,272 @@
+---
+title: "R Notebook"
+output: html_notebook
+---
+
+This is an [R Markdown](http://rmarkdown.rstudio.com) Notebook. When you execute code within the notebook, the results appear beneath the code. 
+
+Try executing this chunk by clicking the *Run* button within the chunk or by placing your cursor inside it and pressing *Ctrl+Shift+Enter*. 
+
+```{r}
+plot(cars)
+```
+
+Add a new chunk by clicking the *Insert Chunk* button on the toolbar or by pressing *Ctrl+Alt+I*.
+
+When you save the notebook, an HTML file containing the code and output will be saved alongside it (click the *Preview* button or press *Ctrl+Shift+K* to preview the HTML file).
+
+The preview shows you a rendered HTML copy of the contents of the editor. Consequently, unlike *Knit*, *Preview* does not run any R code chunks. Instead, the output of the chunk when it was last run in the editor is displayed.
+
+```{r}
+library(tidyverse)# make sure titdyverse package is checked under the packages tab
+library(ggplot2)
+library(lattice)
+library(lubridate)
+```
+
+
+```{r}
+#read in data USING "IMPORT DATA"
+library(readxl)
+mydata <- read_excel("2023SteelheadAirSpawning.xlsx")
+View(X2023SteelheadAirSpawning)
+
+
+#OLD CODE FOR READING IN DATA
+#mydata<-read.csv(file.choose(C:/Users/shekk477/OneDrive - Washington State Executive Branch Agencies/WDFW/1. Research/2. Aquaculture Monitoring/Steelhead Live Spawning/Data Analysis/WEN-STHD-Aispawning/2023SteelheadAirSpawning.csv))  #### use with 2023SteelheadAirSpawning file
+#names(mydata)
+#str(mydata)
+#head(mydata)
+#summary(mydata)
+```
+
+
+```{r}
+# main questions
+# 1. difference in survival between air spawned and lethal spawned SHR
+# 2. difference in number of green eggs between air spawned and lethal spawned SHR
+# 3. difference in survival by date of collection
+# 4. difference in survival by spawn date
+# 5. difference in survival by male ID
+# 6. did injecting fish make a difference for survival
+```
+
+
+```{r}
+attach(mydata)
+Origin <- as.factor(Origin) # make origin a factor
+Injected<- as.factor(Injected) # make injected a factor
+str(mydata)
+class(Injected)# returns class of variable. prooves Injected is factor
+
+mydata$new_date <- mdy(mydata$Date)# crates new column with date properly converted to Date
+str(mydata)
+mydata$month <- month(mydata$new_date)
+```
+
+
+```{r}
+plot(AirEggSurvival~Date, main=("Airspawn Survival by Date"), xlab="Date", ylab=("Egg Survival"))
+
+
+mydata%>%  #graphs Wt by FL broken up by Origin
+  ggplot(aes(group=WT, x=WT, y=FL))+
+  geom_point(aes(color=Origin))+
+  labs(title="Steelhead FL by Wt")+
+  theme(plot.title=element_text(hjust=0.5))+
+  xlab("Weight (kg)")+
+  ylab("Fork Length (cm)")
+
+mydata%>%  # graphs Wt by FL broken up by injected
+  ggplot(aes(group=WT, x=WT, y=FL))+
+  geom_jitter(aes(color=Injected))+
+  labs(title="Steelhead FL by Wt")+
+  theme(plot.title=element_text(hjust=0.5))+
+  xlab("Weight (kg)")+
+  ylab("Fork Length (cm)")
+
+mydata%>% # graphs Male # by % Survival broken up by injected
+  ggplot(aes(group=MaleID, x=MaleID, y=AirEggSurvival))+
+  geom_jitter(aes(color=Injected))+
+  labs(title="Survival by male")+
+  theme(plot.title=element_text(hjust=0.5))+
+  xlab("Male #")+
+  ylab("% Survival")
+
+mydata%>% # graphs % air spawned survival by % lethal spawned survival broken up by injected
+  ggplot(aes(x=AirEggSurvival,y=LethalEggSurvival))+
+  geom_jitter(aes(color=Injected))+ # use jitter for overlapping points
+  labs(title="Egg Survival")+
+  theme(plot.title=element_text(hjust=0.5))+
+  xlab("% Air spawned Survival")+
+  ylab("% Lethal Spawned Survival")
+
+boxplot(FL~Origin, main=("Fork Length by Origin"),xlab=("Origin"),ylab=("FL (cm)")) 
+anova1<-aov(FL~Origin) # no difference in size by origin P-value >0.89
+summary(anova1)
+t.test(FL~Origin) # no difference in size by origin P-value >0.90
+
+boxplot(WT~Origin, main=("Weight by Origin"),xlab=("Origin"),ylab=("WT (kg)"))
+anova2<-aov(WT~Origin)
+summary(anova2) # no difference in wt by origin; P-value = 0.8
+t.test(WT~Origin) # no difference in wt by origin; P-value = 0.8
+
+boxplot(AirEggSurvival~Origin, main=("Survival of Airspawned BY2023 Steelhead by Origin n=52"),xlab=("Origin"),ylab=("% Egg Survival"))
+anova3<-aov(AirEggSurvival~Origin)
+summary(anova3) # no difference in wt by origin; P-value = 0.96
+t.test(AirEggSurvival~Origin) # no difference in airspawned survival by origin; P-value = 0.96
+
+boxplot(LethalEggSurvival~Origin, main=("Survival of Lethal spawned BY2023 Steelhead by Origin n=52"),xlab=("Origin"),ylab=("% Egg Survival"))
+anova4<-aov(LethalEggSurvival~Origin)
+summary(anova4) # no difference in wt by origin; P-value = 0.82
+t.test(LethalEggSurvival~Origin) # no difference in wt by origin; P-value = 0.82
+
+boxplot(AirEggSurvival~Injected, main=("Survival of Airspawned BY2023 Steelhead by Injected (7 fish injected)"),xlab=("Injected"),ylab=("% Egg Survival"))
+# 2 of the 7 injected fish had 0% survival. Would need to address before statistical test can be done
+anova5<-aov(AirEggSurvival~Injected)
+summary(anova5) # no difference in wt by origin; P-value = 0.36
+t.test(AirEggSurvival~Injected) # no difference in wt by origin; P-value = 0.54
+
+
+boxplot(LethalEggSurvival~Injected, main=("Survival of Lethal spawned BY2023 Steelhead by Injected (7 fish injected)"),xlab=("Injected"),ylab=("% Egg Survival"))
+# 2 of the 7 injected fish had 0% survival. Would need to address before statistical test can be done
+anova6<-aov(LethalEggSurvival~Injected)
+summary(anova6) # no difference in wt by origin; P-value = 0.79
+t.test(LethalEggSurvival~Injected) # no difference in wt by origin; P-value = 0.83
+
+names(mydata)
+plot(AirEggSurvival~AirAvgEggWt)
+anova7<-aov(AirEggSurvival~AirAvgEggWt)
+summary(anova7)# is this the right test? no difference in survival by avg wt; P-value = 0.38
+
+AirEggWeight
+
+boxplot(AirEggSurvival~FL)
+plot(AirEggSurvival~FL)
+anova8<-(AirEggSurvival~FL)
+summary(anova8)
+
+
+summary(mydata$AirEggSurvival) # Survival of Air spawned
+summary(mydata$LethalEggSurvival) # survival of lethal spawned
+summary(mydata$TotalGreenEgg)
+summary(mydata$AirGreenEgg)
+
+mydata%>%   # survival of airspawned eggs by Origin
+  ggplot(aes(group=Origin, x=Origin, y=AirEggSurvival))+
+  geom_boxplot()+
+  labs(title =  "Survival of Airspawned Steelhead eggs by Origin")+
+  theme(plot.title=element_text(hjust=0.5))+
+  xlab("Origin")+
+  ylab("% Survival")
+
+mydata%>%  # survival of airspawned eggs by Injection
+  ggplot(aes(group=Injected, x=Injected, y=AirEggSurvival))+
+  geom_boxplot()+
+  labs(title =  "Survival of Airspawned Steelhead eggs by Injection")+
+  theme(plot.title=element_text(hjust=0.5))+
+  xlab("Injected")+
+  ylab("% Survival")
+
+#AIC2<-lm(AirEggSurvival~., data=mydata)### not correct but working on AIC scores
+#AIC2
+#summary(AIC2)
+
+detach(mydata)
+
+
+######################################################################################
+
+mydata<-read.csv(file.choose())  ###### use with 2023SteelheadAirSpawningSurvival file
+library(ggplot2)
+install.packages("lubridate")
+head(mydata)
+names(mydata)
+str(mydata)
+summary(mydata)
+attach(mydata)
+Treatment <- as.factor(Treatment) # make treatment a factor
+Origin <- as.factor(Origin) # make origin a factor
+Injected<- as.factor(Injected) # make injected a factor
+str(mydata)
+class(Treatment)
+class(Injected)
+
+plot(WT~FL, main=("FL by Wt"), xlab="FL (cm)", ylab=("Wt (kg)"))
+
+Survival # RAW survival; all % between 0-1 
+asin(sqrt(Survival))
+asinSurvival <- asin(sqrt(Survival)) # ArcSign transformation of survival
+asinSurvival
+
+######## Question 1.#########
+mydata%>%   # survival of airspawned eggs by Treatment
+  ggplot(aes(group=Treatment, x=Treatment, y=Survival))+
+  geom_boxplot()+
+  labs(title =  "Survival of Airspawned Steelhead eggs by Treatment")+
+  theme(plot.title=element_text(hjust=0.5))+
+  xlab("Treatment")+
+  ylab("% Survival")
+
+boxplot(Survival~Treatment, main=("Survival of eggs by treatment"), xlab=("Treatment"), ylab=("% Survival"))  
+# variance is different, extreme outliers in Airspawn group
+
+boxplot(asinSurvival~Treatment, main=("Transformed Survival of eggs by treatment"), xlab=("Treatment"), ylab=("% Survival"))  
+# variance is different, extreme outliers in Airspawn group
+
+ggplot(mydata, aes(Survival))+
+  geom_histogram(aes(color = Treatment), fill = "White") # data is not normal
+
+
+wilcox.test(Survival~Treatment)
+## Rank-sum test; chosen due to extreme outliers and better assumption for data. Assumptions are obs are independent (if fish were chosen randomly...), no normal distribution. 
+
+lmSurvival<-lm(Survival~Treatment)
+aov(lmSurvival)
+summary(lmSurvival)
+hist(lmSurvival$residuals)
+plot(lmSurvival$fitted.values,lmSurvival$residuals)  ##plotting fitted values by residuals?
+qqnorm(lmSurvival$residuals, main="Normal QQ plot")
+qqline(lmSurvival$residuals) # non-normal distribution; should not use a t-test; might be able to transform with logit since values are between 0-1
+
+wilcox.test(asinSurvival~Treatment)
+## Rank-sum test; chosen due to extreme outliers and better assumption for data. Assumptions are obs are independent (if fish were chosen randomly...), no normal distribution. 
+## sig diff between survival and treatment; p=0.00009
+
+lm2Survival<-lm(asinSurvival~Treatment) # transformed Survival data
+aov(lm2Survival)
+summary(lm2Survival)
+hist(lm2Survival$residuals)
+plot(lm2Survival$fitted.values,lm2Survival$residuals)  ##plotting fitted values by residuals?
+qqnorm(lm2Survival$residuals, main="Normal QQ plot")
+qqline(lm2Survival$residuals) # non-normal distribution; should not use a t-test; might be able to transform with logit since values are between 0-1
+
+###### end Question 1 #########
+
+######### Start questions 2 ###########
+names(mydata)
+boxplot(GreenEggCount~Treatment, main=("Egg take by treatment"),xlab="Treatment", ylab="Green Egg Count")
+wilcox.test(GreenEggCount~Treatment)
+# P-value = <0.00001
+
+####### end Question 2 ##########
+
+########## start Question 3 #########
+
+names(mydata)
+class(Date)
+str(mydata)
+
+mydata$new_date <- mdy(mydata$Date)# crates new column with date properly converted to Date
+str(mydata)
+mydata$month <- month(mydata$new_date) # create new column with just month
+str(mydata)
+head(mydata)
+plot(Survival~new_date, main=("Survival by Date"), xlab="Date", ylab=("Egg Survival"))
+plot(mydata$Airspawn~new_date)
+
+detach(mydata)
+
+
+```
+
